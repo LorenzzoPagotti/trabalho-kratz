@@ -4,14 +4,14 @@ Aplicação cliente-servidor desenvolvida em Java utilizando **Sockets TCP** e *
 
 ---
 
-## 👥 Integrantes do Grupo
+##  Integrantes do Grupo
 
 - Lorenzzo Freitas Pagotti
 - Kauã Vieira Porto
 
 ---
 
-## 📋 Descrição e Funcionamento
+##  Descrição e Funcionamento
 
 1. **Sorteio Único:** Ao iniciar, o `Servidor` sorteia um único número inteiro entre `0` e `1000` (inclusive) usando `Random.nextInt(1001)`.
 2. **Múltiplos Clientes (Threads):** Cada conexão aceita pelo `ServerSocket` na porta `5000` é atendida por uma `Thread` independente (`Jogador`), garantindo que clientes ociosos não bloqueiem os demais.
@@ -33,7 +33,7 @@ Aplicação cliente-servidor desenvolvida em Java utilizando **Sockets TCP** e *
 
 ---
 
-## 🚀 Como Compilar e Executar
+##  Como Compilar e Executar
 
 ### Pré-requisitos
 - **Java JDK** (8 ou superior) instalado e configurado no `PATH`.
@@ -68,7 +68,7 @@ java Cliente 192.168.1.10
 
 ---
 
-## 🧪 Roteiro de Testes Realizados
+##  Roteiro de Testes Realizados
 
 1. **Três ou mais clientes simultâneos:** Três clientes conectados ao mesmo tempo enviando palpites independentes e recebendo `MAIOR` ou `MENOR` individualmente.
 2. **Anúncio em cliente aguardando digitação:** Um cliente conectado que permaneceu parado no prompt de digitação recebeu imediatamente a mensagem `VENCEDOR IP=... HOST=... NUMERO=...` assim que outro jogador acertou.
@@ -79,7 +79,7 @@ java Cliente 192.168.1.10
 
 ---
 
-## 💡 Respostas para a Apresentação
+##  Respostas para a Apresentação
 
 - **Por que o cliente precisa receber mensagens em outra thread?**
   Porque a leitura do teclado (`Scanner.nextLine()`) é uma operação bloqueante. Se o cliente lesse o teclado e o socket na mesma thread, ele ficaria travado esperando o usuário digitar um palpite e só exibiria o anúncio de fim de jogo depois que o usuário pressionasse `ENTER`. Com uma thread dedicada à recepção (`receptor`), qualquer mensagem do servidor é impressa na tela instantaneamente.
