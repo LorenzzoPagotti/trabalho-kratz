@@ -68,6 +68,151 @@ java Cliente 192.168.1.10
 
 ---
 
+##  Execução com Docker (Servidor em Contêiner)
+
+O **servidor** roda obrigatoriamente dentro de um contêiner Docker; o **cliente** roda fora do contêiner (no host Linux/WSL ou no Windows).
+
+### Pré-requisitos
+- Linux com Docker instalado **ou** Windows com WSL 2 (Ubuntu) + Docker (Docker Desktop com integração WSL ou Docker Engine dentro do Ubuntu).
+- Java JDK no host, apenas para compilar/rodar o **cliente**.
+
+### Estrutura do projeto
+
+```text
+trabalho-kratz/
+├── Servidor.java      # servidor TCP (porta 5000)
+├── Cliente.java       # cliente TCP
+├── Dockerfile         # receita da imagem do servidor
+├── .dockerignore      # arquivos ignorados no build
+├── README.md
+└── capturas/          # prints da execução
+```
+
+### O Dockerfile
+
+```dockerfile
+FROM eclipse-temurin:17-jdk                          # 1. imagem base Java
+WORKDIR /app                                         #    pasta de trabalho no contêiner
+COPY Servidor.java Cliente.java ./                   # 2. copia o código-fonte
+RUN javac -encoding UTF-8 Servidor.java Cliente.java # 3. compila dentro da imagem
+EXPOSE 5000                                          # 4. porta TCP do servidor
+CMD ["java", "-Dfile.encoding=UTF-8", "Servidor"]    # 5. inicia o servidor automaticamente
+```
+
+### Passo 1 — Construir a imagem (`docker build`)
+Na raiz do projeto:
+
+```bash
+docker build -t jogo-adivinhacao-lorenzzo-kaua:1.0 .
+```
+
+- `-t` define o nome (tag) da imagem, identificando o jogo e o grupo.
+- `.` indica que o contexto do build (e o `Dockerfile`) está na pasta atual.
+
+Conferir se a imagem foi criada:
+
+```bash
+docker images jogo-adivinhacao-lorenzzo-kaua
+```
+
+### Passo 2 — Executar o servidor em um contêiner (`docker run`)
+
+```bash
+docker run -d --name servidor-adivinhacao -p 5000:5000 jogo-adivinhacao-lorenzzo-kaua:1.0
+```
+
+- `-d` executa em segundo plano (detached).
+- `--name` dá um nome ao contêiner.
+- `-p 5000:5000` publica a porta: `porta_do_host:porta_do_contêiner`.
+
+Verificar se está rodando e ver os logs do servidor:
+
+```bash
+docker ps
+docker logs -f servidor-adivinhacao
+```
+
+Saída esperada nos logs:
+
+```text
+Servidor iniciado na porta 5000. Aguardando jogadores...
+```
+
+> Alternativa para ver o servidor em primeiro plano: `docker run -it --rm --name servidor-adivinhacao -p 5000:5000 jogo-adivinhacao-lorenzzo-kaua:1.0`
+
+### Passo 3 — Executar o cliente (fora do contêiner)
+Em outro terminal, na raiz do projeto:
+
+```bash
+javac -encoding UTF-8 Cliente.java
+java Cliente localhost
+```
+
+Exemplo de partida (busca binária):
+
+```text
+Digite um número de 0 a 1000 ou SAIR.
+BEM_VINDO Digite um número entre 0 e 1000 (ou SAIR para encerrar)
+500
+MENOR
+250
+MAIOR
+375
+MENOR
+...
+312
+ACERTOU
+VENCEDOR IP=172.17.0.1 HOST=172.17.0.1 NUMERO=312
+Partida finalizada! Pressione ENTER para sair.
+```
+
+> **Observação:** o IP do vencedor aparece como o gateway da rede Docker (ex.: `172.17.0.1`), pois a conexão do cliente chega ao contêiner através do mapeamento de portas (`-p`). Isso comprova que a comunicação TCP está passando pela rede do Docker.
+
+- **Windows + WSL com Docker Desktop:** o cliente pode rodar no PowerShell/CMD do Windows com `java Cliente localhost`.
+- **Outra máquina da rede:** `java Cliente <IP_DA_MAQUINA_HOST>` (porta 5000 liberada no firewall).
+
+### Passo 4 — Nova partida, parar e remover
+
+O servidor sorteia o número uma única vez. Para começar uma nova partida, reinicie o contêiner:
+
+```bash
+docker restart servidor-adivinhacao   # nova partida (novo número)
+docker stop servidor-adivinhacao      # para o contêiner
+docker rm servidor-adivinhacao        # remove o contêiner
+docker rmi jogo-adivinhacao-lorenzzo-kaua:1.0   # remove a imagem (opcional)
+```
+
+### Resumo dos comandos Docker
+
+| Comando | Para que serve |
+|---|---|
+| `docker build -t <nome> .` | Constrói a imagem a partir do `Dockerfile` |
+| `docker images` | Lista as imagens criadas |
+| `docker run -d --name <c> -p 5000:5000 <imagem>` | Cria e inicia o contêiner publicando a porta TCP |
+| `docker ps` | Lista os contêineres em execução |
+| `docker logs -f <c>` | Mostra a saída (logs) do servidor |
+| `docker exec -it <c> bash` | Abre um terminal dentro do contêiner |
+| `docker restart <c>` | Reinicia o contêiner (nova partida) |
+| `docker stop <c>` / `docker rm <c>` | Para / remove o contêiner |
+| `docker rmi <imagem>` | Remove a imagem |
+
+### Capturas de tela
+As evidências ficam na pasta [`capturas/`](capturas/):
+
+1. `01-docker-build.png` — saída do `docker build`.
+2. `02-docker-images.png` — imagem `jogo-adivinhacao-lorenzzo-kaua` listada.
+3. `03-docker-ps.png` — contêiner `servidor-adivinhacao` em execução com a porta `0.0.0.0:5000->5000/tcp`.
+4. `04-docker-logs.png` — logs do servidor (início, conexões e vencedor).
+5. `05-cliente-jogo.png` — cliente enviando palpites, recebendo `MAIOR`/`MENOR` e `ACERTOU`.
+
+### Gerar o .zip de entrega
+
+```bash
+zip -r trabalho-docker-lorenzzo-kaua.zip Servidor.java Cliente.java Dockerfile .dockerignore README.md capturas/
+```
+
+---
+
 ##  Roteiro de Testes Realizados
 
 1. **Três ou mais clientes simultâneos:** Três clientes conectados ao mesmo tempo enviando palpites independentes e recebendo `MAIOR` ou `MENOR` individualmente.
